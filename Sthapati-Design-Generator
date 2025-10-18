@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sthapati — Prototype</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Sthapati — Cultural Parametric Design Generator</h1>
+  <div>
+    <label>Plot width (m): <input id="w" value="10"></label>
+    <label>Plot depth (m): <input id="h" value="8"></label>
+    <label>Family size: 
+      <select id="family"><option>2</option><option>4</option><option>6</option></select>
+    </label>
+    <label>Priority: 
+      <select id="prio"><option>compact</option><option>ventilation</option><option>ceremonial</option></select>
+    </label>
+    <button id="gen">Generate</button>
+  </div>
+  <svg id="canvas" width="800" height="600"></svg>
+  <div id="cost"></div>
+  <button id="export">Export SVG</button>
+  <script src="app.js"></script>
+</body>
+</html>
+body{font-family: Arial; padding:16px; background:#f9f9f9;} 
+h1{color:#2e3d49;} 
+label{margin-right:12px;} 
+button{margin-top:10px; padding:6px 12px;} 
+#canvas{border:1px solid #ccc; margin-top:10px; background:#fff;}
+function generateLayout(W,H,family,priority){
+  const unit=0.5;
+  const area=W*H;
+  const rooms=[];
+  const livingArea=Math.max(8, Math.round(area*0.2));
+  rooms.push({type:'Living', w: Math.min(W, Math.sqrt(livingArea)), h: Math.round(livingArea/Math.min(W, Math.sqrt(livingArea))), x:0, y:0});
+  const bedrooms=Math.ceil(family/2);
+  let bx = rooms[0].w;
+  for(let i=0;i<bedrooms;i++){
+    const bw = Math.min(4, (W-bx));
+    const bh = Math.min(3.5, H/Math.max(1,bedrooms));
+    rooms.push({type:'Bed'+(i+1), w:bw, h:bh, x:bx, y:i*bh});
+  }
+  rooms.push({type:'Brahmasthan', w: Math.max(1, W*0.08), h: Math.max(1, H*0.08), x:W*0.5 - (W*0.04), y:H*0.5 - (H*0.04)});
+  return rooms;
+}
+function renderSVG(rooms){
+  const svg=document.getElementById('canvas');
+  svg.innerHTML='';
+  const scale=40;
+  let totalArea=0;
+  rooms.forEach(r=>{
+    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', r.x*scale);
+    rect.setAttribute('y', r.y*scale);
+    rect.setAttribute('width', r.w*scale);
+    rect.setAttribute('height', r.h*scale);
+    rect.setAttribute('fill','none'); rect.setAttribute('stroke','#333');
+    svg.appendChild(rect);
+    const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x', (r.x+0.2)*scale); txt.setAttribute('y', (r.y+0.6)*scale);
+    txt.textContent = r.type;
+    svg.appendChild(txt);
+    totalArea += r.w*r.h;
+  });
+  document.getElementById('cost').innerHTML = '<b>Estimated material cost:</b> ₹'+(totalArea*1200).toLocaleString();
+}
+document.getElementById('gen').addEventListener('click', ()=>{
+  const W=Number(document.getElementById('w').value);
+  const H=Number(document.getElementById('h').value);
+  const family=Number(document.getElementById('family').value);
+  const prio=document.getElementById('prio').value;
+  const rooms=generateLayout(W,H,family,prio);
+  renderSVG(rooms);
+});
+document.getElementById('export').addEventListener('click', ()=>{
+  const svg=document.getElementById('canvas');
+  const serializer = new XMLSerializer();
+  let source = serializer.serializeToString(svg);
+  const blob = new Blob([source], {type:'image/svg+xml;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url;
+  a.download='floorplan.svg';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+# Sthapati — Cultural Parametric Design Generator
+
+## How to run
+1. Open `index.html` in any modern browser.
+2. Enter plot dimensions, family size, and priority.
+3. Click Generate to see the floorplan.
+4. Click Export SVG to save the plan.
+
+## Features
+- Shilpa/Vastu-inspired room placement.
+- Interactive SVG floorplan.
+- Simple material cost estimation.
+- Exportable floorplan as SVG.
+
+## Requirements
+- Modern browser (Chrome, Edge, Firefox, Safari)
+- No internet connection required for MVP.
